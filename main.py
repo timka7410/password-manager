@@ -1,112 +1,116 @@
 from tkinter import *
 from tkinter import messagebox
+from random import choice, randint, shuffle
+import pyperclip
+import json
+
+# ---------------------------- FIND PASSWORD ------------------------------------ #
+
+def find_password():
+    website = website_entry.get().upper()
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)             # Reading data
+    except FileNotFoundError:
+        messagebox.showinfo(title="Oops", message="No data file found.")
+    else:
+        if website in data:
+            messagebox.showinfo(title=website, message=f"The email is: {data[website]['email']}.\nThe password is: {data[website]['password']}")
+            print(data[website]["email"])
+        else:
+            messagebox.showinfo(title="Oops", message="The is no data by this webpage.")
+
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
-import string
-import random
 
-## characters to generate password from
-characters = list(string.ascii_letters + string.digits + "!@#$%^&*()")
+def generate_password():
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    symbols = ['!', '#', '$', '%', '&', '(', ')', '*', '+']
 
+    password_letters = [choice(letters) for _ in range(randint(8, 10))]
+    password_symbols = [choice(symbols) for _ in range(randint(2, 4))]
+    password_numbers = [choice(numbers) for _ in range(randint(2, 4))]
 
-def generate_random_password():
-    ## length of password from the user
-    # length = int(input("Enter password length: "))
-    len_pass = number_of_symbols.get()
-    length = int(len_pass)
+    password_list = password_letters + password_symbols + password_numbers
+    shuffle(password_list)
 
-    ## shuffling the characters
-    random.shuffle(characters)
-
-    ## picking random characters from the list
-    password = []
-    for i in range(length):
-        password.append(random.choice(characters))
-
-    ## shuffling the resultant password
-    random.shuffle(password)
-
-    ## converting the list to string
-    ## printing the list
-    print("".join(password))
-    entry_password.delete(0, END)
-    entry_password.insert(0, "".join(password))
-    window.clipboard_clear()
-    window.clipboard_append("".join(password))
-
+    password = "".join(password_list)
+    password_entry.insert(0, password)
+    pyperclip.copy(password)
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
-
 def save():
-    website = entry_website.get()
-    email = entry_email.get()
-    password = entry_password.get()
 
-    if website == '' or password == '':
-        messagebox.showinfo(title="Oops", message="Please, don't leave any fields empty!")
+    website = website_entry.get().upper()
+    email = email_entry.get()
+    password = password_entry.get()
+    new_data = {
+        website: {
+            "email": email,
+            "password": password,
+        }
+    }
+
+    if len(website) == 0 or len(password) == 0:
+        messagebox.showinfo(title="Oops", message="Please make sure you haven't left any fields empty.")
     else:
-        with open("data.txt", "a") as f:
-            f.write(f'{website} | {email} | {password}\n')
+        try:
+            with open("data.json", "r") as data_file:
+                # json.dump(new_data, data_file, indent=4)
+                # Reading old data
+                data = json.load(data_file)
+        except FileNotFoundError:
+            with open("data.json", "w") as data_file:
+                # Saving updated data
+                json.dump(new_data, data_file, indent=4)
+        else:
+            # Updating old data with new data
+            data.update(new_data)
 
-        entry_website.delete(0, END)
-        entry_email.delete(0, END)
-        entry_password.delete(0, END)
-        entry_email.insert(0, "yourmail@gmail.com")
-        messagebox.showinfo(title="Weal done", message="Your password is safe!")
+            with open("data.json", "w") as data_file:
+                # Saving updated data
+                json.dump(data, data_file, indent=4)
+        finally:
+            website_entry.delete(0, END)
+            password_entry.delete(0, END)
 
 
 # ---------------------------- UI SETUP ------------------------------- #
+
 window = Tk()
 window.title("Password Manager")
 window.config(padx=50, pady=50)
 
-canvas = Canvas(width=200, height=200)
+canvas = Canvas(height=200, width=200)
 logo_img = PhotoImage(file="logo.png")
 canvas.create_image(100, 100, image=logo_img)
-canvas.grid(column=1, row=0, columnspan=4)
+canvas.grid(row=0, column=1)
 
-# Label Website
-label_website = Label(text="Website:")
-label_website.grid(column=0, row=1)
+#Labels
+website_label = Label(text="Website:")
+website_label.grid(row=1, column=0)
+email_label = Label(text="Email/Username:")
+email_label.grid(row=2, column=0)
+password_label = Label(text="Password:")
+password_label.grid(row=3, column=0)
 
-# Label Email/Username
-label_email = Label(text="Email/Username:")
-label_email.grid(column=2, row=1)
+#Entries
+website_entry = Entry(width=21)
+website_entry.grid(row=1, column=1)
+website_entry.focus()
+email_entry = Entry(width=21)
+email_entry.grid(row=2, column=1)
+email_entry.insert(0, "angela@gmail.com")
+password_entry = Entry(width=21)
+password_entry.grid(row=3, column=1)
 
-# Label Password
-label_password = Label(text="Password:")
-label_password.grid(column=0, row=2)
-
-# Label Symbols
-label_symbols = Label(text="symbols")
-label_symbols.grid(column=4, row=2)
-
-# Generate password Button
-generate_pass_button = Button(text="Generate Password", command=generate_random_password)
-generate_pass_button.grid(column=2, row=2)
-
-# Spinbox number of symbols
-var = IntVar()
-var.set(25)
-number_of_symbols = Spinbox(window, from_=8, to=25, textvariable=var, width=2)
-number_of_symbols.grid(column=3, row=2)
-
-# Add Button
-add_button = Button(text="Add", width=60, command=save)
-add_button.grid(column=1, row=3, columnspan=4)
-
-# Entry website
-entry_website = Entry(width=35)
-entry_website.grid(column=1, row=1, columnspan=1)
-entry_website.focus()
-
-# Entry email
-entry_email = Entry(width=25)
-entry_email.grid(column=3, row=1, columnspan=2)
-entry_email.insert(0, "yourmail@gmail.com")
-
-# Entry password
-entry_password = Entry(width=35)
-entry_password.grid(column=1, row=2)
+# Buttons
+generate_password_button = Button(text="Generate Password", command=generate_password)
+generate_password_button.grid(row=3, column=2)
+add_button = Button(text="Add", width=18, command=save)
+add_button.grid(row=4, column=1)
+find_password_button = Button(text="Search", width=13, command=find_password)
+find_password_button.grid(row=1, column=2, columnspan=1)
 
 window.mainloop()
